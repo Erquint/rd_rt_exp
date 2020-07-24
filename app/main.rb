@@ -70,16 +70,20 @@ def tick args
       angle_anchor_y: 0.5
     }
     center! $state[:sprite], args
+    $state[:angleΔ] = 45
   end
   
-  case args.inputs.mouse&.wheel&.y&.positive?
+  case args.inputs.mouse.wheel&.y&.positive?
   when true
+    # $state[:angleΔ] -= 1
     scale! $state[:sprite], lambda{|size| size + 10}
   when false
+    # $state[:angleΔ] += 1
     scale! $state[:sprite], lambda{|size| size - 10}
   end
   
-  $state[:sprite][:angle] += 45
+  $state[:angleΔ] += 0.1
+  $state[:sprite][:angle] += $state[:angleΔ]
   
   args.outputs.sprites << $state[:sprite]
   # args.outputs.solids << solid

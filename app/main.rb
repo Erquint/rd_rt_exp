@@ -38,54 +38,92 @@ end
 
 def tick args
   if args.state.tick_count == 0 then
-    $state = {}
-    solid = {
-      x: 0,
-      y: 0,
-      w: 50,
-      h: 50,
-      r: 0,
-      g: 0,
-      b: 0,
-      a: 255
+    $state = {
+      solids: {},
+      sprites: {},
+      RTs: {},
+      mouse: {},
+      labels: {},
+      toggles: {}}
+    
+    $state[:solids][:square] = {
+    x: 0,
+    y: 0,
+    w: 1280,
+    h: 720,
+    r: 255,
+    g: 0,
+    b: 0,
+    a: 255
     }
-    $state[:sprite] = {
+  
+    $state[:RTs][:circle] = args.render_target :rt_circle
+    $state[:RTs][:circle].solids << $state[:solids][:square]
+    $state[:RTs][:circle].width = 1280
+    $state[:RTs][:circle].height = 720
+    
+    $state[:sprites][:circle] = {
       x: 0,
       y: 0,
-      w: 50,
-      h: 50,
-      path: solid,
+      w: 1280,
+      h: 720,
+      path: :rt_circle,
       angle: 0,
-      r: 0,
-      g: 0,
-      b: 0,
-      a: 255,
-      tile_x: 0,
-      tile_y: 0,
-      tile_w: -1,
-      tile_h: -1,
+      r: 128,
+      g: 128,
+      b: 128,
+      a: 128,
       flip_vertically: false,
       flip_horizontally: false,
       angle_anchor_x: 0.5,
-      angle_anchor_y: 0.5
+      angle_anchor_y: 0.5,
+      source_x: 0,
+      source_y: 0,
+      source_w: 1280,
+      source_h: 720
     }
-    center! $state[:sprite], args
-    $state[:angleΔ] = 45
+    
+    $state[:labels][:whee] = {
+      x: 20,
+      y: 40,
+      text: "[R] for WHEE",
+    }
+  
+    $state[:angleΔ] += 45
+    $state[:subject] = $state[:sprites][:circle]
   end
+  
+  $state[:mouse][:held] = true if args.inputs.mouse.down
+  $state[:mouse][:held] = false if args.inputs.mouse.up
+  
+  if $state[:mouse][:held] then
+    $state[:subject][:x] += args.inputs.mouse.point.x - $state[:mouse][:x]
+    $state[:subject][:y] += args.inputs.mouse.point.y - $state[:mouse][:y]
+  end
+  
+  $state[:mouse][:x] = args.inputs.mouse.point.x
+  $state[:mouse][:y] = args.inputs.mouse.point.y
   
   case args.inputs.mouse.wheel&.y&.positive?
   when true
-    # $state[:angleΔ] -= 1
-    scale! $state[:sprite], lambda{|size| size + 10}
+    scale! $state[:subject], lambda{|size| size + 10}
   when false
-    # $state[:angleΔ] += 1
-    scale! $state[:sprite], lambda{|size| size - 10}
+    scale! $state[:subject], lambda{|size| size - 10}
   end
   
-  $state[:angleΔ] += 0.1
-  $state[:sprite][:angle] += $state[:angleΔ]
+  if args.inputs.keyboard.key_down.r then
+    $state[:toggles][:whee] = !$state[:toggles][:whee]
+  end
   
-  args.outputs.sprites << $state[:sprite]
-  # args.outputs.solids << solid
-  # args.outputs.borders << border
+  if $state[:toggles][:whee] then
+    $state[:angleΔ] += 0.1
+    $state[:subject][:angle] += $state[:angleΔ]
+  end
+  
+  if args.state.tick_count % (60 * 10) == 0 then
+    puts $state.to_s + "\n\n"
+  end
+  
+  args.outputs.sprites << $state[:subject]
+  args.outputs.labels << $state[:labels][:whee]
 end

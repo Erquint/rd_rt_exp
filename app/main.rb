@@ -44,7 +44,8 @@ def tick args
       RTs: {},
       mouse: {},
       labels: {},
-      toggles: {}}
+      toggles: {}
+    }
     
     $state[:solids][:square] = {
     x: 0,
@@ -89,7 +90,7 @@ def tick args
       text: "[R] for WHEE",
     }
   
-    $state[:angleΔ] += 45
+    $state[:angleΔ] = 45
     $state[:subject] = $state[:sprites][:circle]
   end
   

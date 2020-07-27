@@ -103,7 +103,7 @@ def scale! input, function
   input[:w] = Math.sqrt(diagonal) * quotient /
     Math.sqrt(quotient**2 + 1) # Fitting width for new diagonal…
   input[:h] = Math.sqrt(diagonal)            /
-    Math.sqrt(quotient**2 + 1) # …and height with respect to quitient.
+    Math.sqrt(quotient**2 + 1) # …and height with respect to quotient.
   input[:x] = center[:x] - input[:w] / 2 # Recentering…
   input[:y] = center[:y] - input[:h] / 2 # …on both axes.
   true

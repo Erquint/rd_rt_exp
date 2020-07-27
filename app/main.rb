@@ -1,3 +1,5 @@
+# --window_width 800 --window_height 600
+
 class SizedArray
   include Enumerable
   
@@ -114,6 +116,7 @@ def tick args
     $state = {
       solids: {},
       sprites: {},
+      borders: {},
       RTs: {},
       mouse: {},
       labels: {},
@@ -125,18 +128,32 @@ def tick args
     $state[:solids][:square] = {
     x: 0,
     y: 0,
-    w: 1280,
-    h: 720,
+    w: 50,
+    h: 50,
     r: 255,
     g: 0,
     b: 0,
     a: 255
     }
     
+    $state[:borders][:square] = {
+    x: 0,
+    y: 0,
+    w: 1280, # - 480 = 800
+    h: 720, # - 120 = 600
+    r: 255,
+    g: 0,
+    b: 0,
+    a: 255
+    }
+    
+    # args.outputs.width = 1280
+    # args.outputs.height = 1024
     $state[:RTs][:circle] = args.render_target :rt_circle
-    $state[:RTs][:circle].solids << $state[:solids][:square]
     $state[:RTs][:circle].width = 1280
     $state[:RTs][:circle].height = 720
+    $state[:RTs][:circle].solids << $state[:solids][:square]
+    $state[:RTs][:circle].borders << $state[:borders][:square]
     
     $state[:sprites][:circle] = {
       x: 0,
@@ -145,9 +162,9 @@ def tick args
       h: 720,
       path: :rt_circle,
       angle: 0,
-      r: 128,
-      g: 128,
-      b: 128,
+      r: 255,
+      g: 255,
+      b: 255,
       a: 128,
       flip_vertically: false,
       flip_horizontally: false,

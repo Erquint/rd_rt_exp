@@ -306,15 +306,20 @@ def tick args
       puts $state.to_s + "\n\n"
     end
     
-    # puts $state[:RTs][:circle].inspect if args.state.tick_count < 3
-    
-    
-    # Some debug attempt for animation.
     # $state[:RTs][:canvas].clear
+    
+    # Some animation debug code.
     $state[:sprites][:circle][:x] =
-      args.state.tick_count % ($state[:borders][:reclangle][:w])
+      args.state.tick_count % ($state[:borders][:reclangle][:w] / 2)
     $state[:sprites][:circle][:y] =
-      args.state.tick_count % ($state[:borders][:reclangle][:h])
+      args.state.tick_count % ($state[:borders][:reclangle][:h] / 2)
+    tempDebugLabel = {
+      x: args.grid.center.x - 150,
+      y: args.grid.center.y,
+      text: "Circle's coordinates: %.0f, %.0f" %
+        [$state[:sprites][:circle][:x], $state[:sprites][:circle][:y]],
+    }
+    args.outputs.labels << tempDebugLabel
     
     $state[:RTs][:canvas].sprites << $state[:sprites][:circle]
     $state[:RTs][:canvas].borders << $state[:borders][:reclangle]
@@ -346,6 +351,7 @@ def tick args
     }
     # This `puts` shows sprites heaping but not getting rasterized…
     puts $state[:RTs][:canvas].sprites if args.state.tick_count < 10
+    
     args.outputs.sprites << $state[:sprites][:canvas]
     args.outputs.labels << $state[:labels][:whee]
     args.outputs.labels << $state[:labels][:frametime]

@@ -1,5 +1,10 @@
 # --window_width 800 --window_height 600
 
+class GTK::Console
+  def render_help args, top
+  end
+end
+
 class SizedArray
   include Enumerable
   
@@ -69,8 +74,7 @@ end
 
 def center input, args
   output = input.dup
-  output[:x] = args.grid.center.x - input[:w] / 2
-  output[:y] = args.grid.center.y - input[:h] / 2
+  center! output, args
   output
 end
 
@@ -82,14 +86,7 @@ end
 
 def scale input, function
   output = input.dup
-  center = {
-    x: output[:x] + output[:w] / 2,
-    y: output[:y] + output[:h] / 2
-  }
-  output[:w] = function.call(output[:w])
-  output[:h] = function.call(output[:h])
-  output[:x] = center[:x] - output[:w] / 2
-  output[:y] = center[:y] - output[:h] / 2
+  scale! output, function
   output
 end
 
@@ -98,21 +95,29 @@ def scale! input, function
     x: input[:x] + input[:w] / 2,
     y: input[:y] + input[:h] / 2
   }
-  diagonal = input[:w]**2 + input[:h]**2 # Getting current diagonal…
-  quotient = input[:w] / input[:h] # …and quotient.
-  diagonal = function.call(diagonal) # Designating the new diagonal.
-  diagonal = 1 if diagonal < 1 # Prevent disappearing.
-  input[:w] = Math.sqrt(diagonal) * quotient /
-    Math.sqrt(quotient**2 + 1) # Fitting width for new diagonal…
-  input[:h] = Math.sqrt(diagonal)            /
-    Math.sqrt(quotient**2 + 1) # …and height with respect to quotient.
-  input[:x] = center[:x] - input[:w] / 2 # Recentering…
-  input[:y] = center[:y] - input[:h] / 2 # …on both axes.
+  # Getting current diagonal…
+  diagonal = Math.sqrt(input[:w]**2 + input[:h]**2)
+  # …and quotient.
+  quotient = input[:w] / input[:h]
+  # Designating the new diagonal.
+  diagonal = function.call diagonal
+  # Prevent disappearing.
+  diagonal = 1 if diagonal < 1
+  # Fitting width for new diagonal…
+  input[:w] = diagonal * quotient /
+    Math.sqrt(quotient**2 + 1)
+  # …and height with respect to quotient.
+  input[:h] = diagonal            /
+    Math.sqrt(quotient**2 + 1)
+  # Recentering…
+  input[:x] = center[:x] - input[:w] / 2
+  # …on both axes.
+  input[:y] = center[:y] - input[:h] / 2
   true
 end
 
 def tick args
-  if args.state.tick_count == 0
+  if args.state.tick_count == 1
     $state = {
       solids: {},
       sprites: {},
@@ -122,59 +127,120 @@ def tick args
       labels: {},
       toggles: {},
       timing: {},
+      subject: {},
       angleΔ: 45
     }
     
     $state[:solids][:square] = {
     x: 0,
     y: 0,
-    w: 50,
-    h: 50,
+    w: 500,
+    h: 500,
     r: 255,
-    g: 0,
-    b: 0,
+    g: 255,
+    b: 255,
     a: 255
     }
     
-    $state[:borders][:square] = {
-    x: 0,
-    y: 0,
-    w: 1280, # - 480 = 800
-    h: 720, # - 120 = 600
-    r: 255,
-    g: 0,
-    b: 0,
-    a: 255
+    $state[:RTs][:square] = args.render_target :rt_square
+    $state[:RTs][:square].width = $state[:solids][:square][:w]
+    $state[:RTs][:square].height = $state[:solids][:square][:h]
+    $state[:RTs][:square].solids << $state[:solids][:square]
+    
+    $state[:sprites][:square] = {
+      x: 0,
+      y: 0,
+      w: $state[:solids][:square][:w],
+      h: $state[:solids][:square][:h],
+      path: :rt_square,
+      angle: 0,
+      r: 255,
+      g: 255,
+      b: 255,
+      a: 255,
+      angle_anchor_x: 0.5,
+      angle_anchor_y: 0.5,
+      source_x: 0,
+      source_y: 0,
+      source_w: $state[:solids][:square][:w],
+      source_h: $state[:solids][:square][:h]
     }
     
-    # args.outputs.width = 1280
-    # args.outputs.height = 1024
+    $state[:sprites][:square][:diagonal] = Math.sqrt(
+      $state[:sprites][:square][:w]**2 +
+      $state[:sprites][:square][:h]**2
+    ).ceil
+    # Needs generalizing.
+    
     $state[:RTs][:circle] = args.render_target :rt_circle
-    $state[:RTs][:circle].width = 1280
-    $state[:RTs][:circle].height = 720
-    $state[:RTs][:circle].solids << $state[:solids][:square]
-    $state[:RTs][:circle].borders << $state[:borders][:square]
+    $state[:RTs][:circle].width =
+      $state[:sprites][:square][:diagonal]
+    $state[:RTs][:circle].height =
+      $state[:sprites][:square][:diagonal]
+    
+    # square = center $state[:sprites][:square], args
+    # Note: `center` dupes!
+    square = $state[:sprites][:square].dup
+    square[:x] = $state[:RTs][:circle].width / 2 - square[:w] / 2
+    square[:y] = $state[:RTs][:circle].height / 2 - square[:h] / 2
+    # There's got to be a better way!
+    
+    square[:r] = 255
+    square[:g] = 0
+    square[:b] = 0
+    fine = 10
+    (90 * fine).times do |i|
+      square = square.dup
+      square[:angle] += 1 / fine
+      $state[:RTs][:circle].sprites << square
+    end
+    
+=begin
+    puts $state[:RTs][:circle].sprites
+    square = center $state[:sprites][:square], args
+    scale! square, lambda {|size| size - 200}
+    (90 * fine).times do |i|
+      square = square.dup
+      square[:angle] += 1 / fine
+      $state[:RTs][:circle].sprites << square
+    end
+=end
     
     $state[:sprites][:circle] = {
       x: 0,
       y: 0,
-      w: 1280,
-      h: 720,
+      w: $state[:sprites][:square][:diagonal],
+      h: $state[:sprites][:square][:diagonal],
       path: :rt_circle,
       angle: 0,
       r: 255,
       g: 255,
       b: 255,
-      a: 128,
-      flip_vertically: false,
-      flip_horizontally: false,
+      a: 255,
       angle_anchor_x: 0.5,
       angle_anchor_y: 0.5,
       source_x: 0,
       source_y: 0,
-      source_w: 1280,
-      source_h: 720
+      source_w: $state[:sprites][:square][:diagonal],
+      source_h: $state[:sprites][:square][:diagonal]
     }
+    
+    $state[:borders][:reclangle] = {
+    x: 0,
+    y: 0,
+    w: 800,
+    h: 600,
+    r: 255,
+    g: 0,
+    b: 0,
+    a: 255
+    }
+    
+    $state[:RTs][:canvas] = args.render_target :rt_canvas
+    $state[:RTs][:canvas].width = $state[:borders][:reclangle][:w]
+    $state[:RTs][:canvas].height = $state[:borders][:reclangle][:h]
+    
+    center! $state[:sprites][:circle], args
     
     $state[:labels][:whee] = {
       x: 20,
@@ -185,7 +251,7 @@ def tick args
     $state[:labels][:frametime] = {
       x: 20,
       y: args.grid.top - 30,
-      text: "",
+      text: '',
     }
     
     $state[:subject] = $state[:sprites][:circle]
@@ -193,49 +259,104 @@ def tick args
     center! $state[:subject], args
     $state[:timing][:time] = Time.now
     $state[:timing][:frametimes] = SizedArray.new
+    
   end
-  
-  $state[:timing][:frametimes] <<
-    Time.now - $state[:timing][:time]
-  $state[:timing][:time] = Time.now
-  mdn = $state[:timing][:frametimes].median
-  $state[:labels][:frametime][:text] =
-    "T/F: %.0f mspf" % (mdn * 1000)
-  
-  $state[:mouse][:held] = true if args.inputs.mouse.down
-  $state[:mouse][:held] = false if args.inputs.mouse.up
-  
-  if $state[:mouse][:held]
-    $state[:subject][:x] +=
-      args.inputs.mouse.point.x - $state[:mouse][:x]
-    $state[:subject][:y] +=
-      args.inputs.mouse.point.y - $state[:mouse][:y]
+  if args.state.tick_count > 0
+    # For sake of debugging an issue related to this condition:
+    # Mode 1: `if args.state.tick_count > 0`
+    # Mode 2: `if args.state.tick_count > 1`
+    
+    $state[:timing][:frametimes] <<
+      Time.now - $state[:timing][:time]
+    $state[:timing][:time] = Time.now
+    mdn = $state[:timing][:frametimes].median
+    $state[:labels][:frametime][:text] =
+      "T/F: %.0f mspf" % (mdn * 1000)
+    
+    $state[:mouse][:held] = true if args.inputs.mouse.down
+    $state[:mouse][:held] = false if args.inputs.mouse.up
+    
+    if $state[:mouse][:held]
+      $state[:subject][:x] +=
+        args.inputs.mouse.point.x - $state[:mouse][:x]
+      $state[:subject][:y] +=
+        args.inputs.mouse.point.y - $state[:mouse][:y]
+    end
+    
+    $state[:mouse][:x] = args.inputs.mouse.point.x
+    $state[:mouse][:y] = args.inputs.mouse.point.y
+    
+    case args.inputs.mouse.wheel&.y&.positive?
+    when true
+      scale! $state[:subject], lambda {|size| size + 50}
+    when false
+      scale! $state[:subject], lambda {|size| size - 50}
+    end
+    
+    if args.inputs.keyboard.key_down.r
+      $state[:toggles][:whee] = !$state[:toggles][:whee]
+    end
+    
+    if $state[:toggles][:whee]
+      $state[:angleΔ] += 0.1
+      $state[:subject][:angle] += $state[:angleΔ]
+    end
+    
+    if args.inputs.keyboard.key_down.zero
+      puts $state.to_s + "\n\n"
+    end
+    
+    # puts $state[:RTs][:circle].inspect if args.state.tick_count < 3
+    
+    
+    # Some debug attempt for animation.
+    # $state[:RTs][:canvas].clear
+    $state[:sprites][:circle][:x] =
+      args.state.tick_count % ($state[:borders][:reclangle][:w])
+    $state[:sprites][:circle][:y] =
+      args.state.tick_count % ($state[:borders][:reclangle][:h])
+    
+    $state[:RTs][:canvas].sprites << $state[:sprites][:circle]
+    $state[:RTs][:canvas].borders << $state[:borders][:reclangle]
+=begin
+    if args.state.tick_count < 10
+      puts args.state.tick_count
+      puts $state[:RTs][:canvas].sprites[0][:x]
+      puts $state[:RTs][:canvas].sprites[0][:y]
+    end
+=end
+    
+    $state[:sprites][:canvas] = {
+      x: 0,
+      y: 0,
+      w: $state[:borders][:reclangle][:w],
+      h: $state[:borders][:reclangle][:h],
+      path: :rt_canvas,
+      angle: 0,
+      r: 255,
+      g: 255,
+      b: 255,
+      a: 255,
+      angle_anchor_x: 0.5,
+      angle_anchor_y: 0.5,
+      source_x: 0,
+      source_y: 0,
+      source_w: $state[:borders][:reclangle][:w],
+      source_h: $state[:borders][:reclangle][:h]
+    }
+    # This `puts` shows sprites heaping but not getting rasterized…
+    puts $state[:RTs][:canvas].sprites if args.state.tick_count < 10
+    args.outputs.sprites << $state[:sprites][:canvas]
+    args.outputs.labels << $state[:labels][:whee]
+    args.outputs.labels << $state[:labels][:frametime]
+=begin
+    $state[:subject][:x] = 0
+    $state[:subject][:x] =
+      args.state.tick_count % ($state[:borders][:reclangle][:w])
+    $state[:subject][:w] = $state[:sprites][:canvas][:w]
+    $state[:subject][:y] = 0
+    $state[:subject][:h] = $state[:sprites][:canvas][:h]
+    args.outputs.primitives << $state[:subject]
+=end
   end
-  
-  $state[:mouse][:x] = args.inputs.mouse.point.x
-  $state[:mouse][:y] = args.inputs.mouse.point.y
-  
-  case args.inputs.mouse.wheel&.y&.positive?
-  when true
-    scale! $state[:subject], lambda{|size| size + 50000}
-  when false
-    scale! $state[:subject], lambda{|size| size - 50000}
-  end
-  
-  if args.inputs.keyboard.key_down.r
-    $state[:toggles][:whee] = !$state[:toggles][:whee]
-  end
-  
-  if $state[:toggles][:whee]
-    $state[:angleΔ] += 0.1
-    $state[:subject][:angle] += $state[:angleΔ]
-  end
-  
-  if args.inputs.keyboard.key_down.zero
-    puts $state.to_s + "\n\n"
-  end
-  
-  args.outputs.sprites << $state[:subject]
-  args.outputs.labels << $state[:labels][:whee]
-  args.outputs.labels << $state[:labels][:frametime]
 end

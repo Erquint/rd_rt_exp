@@ -236,9 +236,7 @@ def tick args
     a: 255
     }
     
-    $state[:RTs][:canvas] = args.render_target :rt_canvas
-    $state[:RTs][:canvas].width = $state[:borders][:reclangle][:w]
-    $state[:RTs][:canvas].height = $state[:borders][:reclangle][:h]
+    # Canvas declaration was here.
     
     center! $state[:sprites][:circle], args
     
@@ -307,6 +305,7 @@ def tick args
     end
     
     # $state[:RTs][:canvas].clear
+    # $state[:sprites][:canvas].clear
     
     # Some animation debug code.
     $state[:sprites][:circle][:x] =
@@ -320,6 +319,10 @@ def tick args
         [$state[:sprites][:circle][:x], $state[:sprites][:circle][:y]],
     }
     args.outputs.labels << tempDebugLabel
+    
+    $state[:RTs][:canvas] = args.render_target :rt_canvas
+    $state[:RTs][:canvas].width = $state[:borders][:reclangle][:w]
+    $state[:RTs][:canvas].height = $state[:borders][:reclangle][:h]
     
     $state[:RTs][:canvas].sprites << $state[:sprites][:circle]
     $state[:RTs][:canvas].borders << $state[:borders][:reclangle]

@@ -38,7 +38,7 @@ def tick args
     }
     args.outputs.labels << {
       y: $canvas_sprite[:h] - 40,
-      text: "#{$canvas_rt.solids.size - 1} objects have piled up waiting for rasterization."
+      text: "#{$canvas_rt.solids.size} objects have piled up in render target waiting to get rasterized."
     }
     args.outputs.labels << {
       y: $canvas_sprite[:h] - 60,

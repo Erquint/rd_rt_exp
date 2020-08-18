@@ -23,25 +23,22 @@ def tick args
     end
     
     $solid_square[:x] =
-      args.state.tick_count % ($canvas_sprite[:w] - $solid_square[:w])
+      args.state.tick_count % (args.grid.right - $solid_square[:w])
     
     $canvas_rt.solids << $solid_square
     args.outputs.sprites << $canvas_sprite
     
     args.outputs.labels << {
-      y: $canvas_sprite[:h],
+      y: args.grid.top,
       text: "Hold [SPACE] to force redeclaration of render target on every tick."
-    }
-    args.outputs.labels << {
-      y: $canvas_sprite[:h] - 20,
+    } << {
+      y: args.grid.top - 20,
       text: "Last passed square solid's X coordinate: #{$solid_square[:x]}."
-    }
-    args.outputs.labels << {
-      y: $canvas_sprite[:h] - 40,
+    } << {
+      y: args.grid.top - 40,
       text: "#{$canvas_rt.solids.size} objects have piled up in render target waiting to get rasterized."
-    }
-    args.outputs.labels << {
-      y: $canvas_sprite[:h] - 60,
+    } << {
+      y: args.grid.top - 60,
       text: "Hold [ENTER] to try clearing the render target. It doesn't help rasterizing."
     }
   end

@@ -120,26 +120,27 @@ def tick args
   if args.state.tick_count == 1
     $state = {
       solids: {},
-      sprites: {},
       borders: {},
+      sprites: {},
       RTs: {},
       mouse: {},
       labels: {},
-      toggles: {},
       timing: {},
-      subject: {},
-      angleΔ: 45
+      subject: {}
     }
     
     $state[:solids][:square] = {
-    x: 0,
-    y: 0,
-    w: 500,
-    h: 500,
-    r: 255,
-    g: 255,
-    b: 255,
-    a: 255
+      w: 400,
+      h: 400,
+      r: 255,
+      g: 255,
+      b: 255
+    }.instance_eval {
+      self[:diagonal] = Math.sqrt(
+        self[:w]**2 +
+        self[:h]**2
+      ).ceil # Needs generalizing.
+      self
     }
     
     $state[:RTs][:square] = args.render_target :rt_square
@@ -148,35 +149,16 @@ def tick args
     $state[:RTs][:square].solids << $state[:solids][:square]
     
     $state[:sprites][:square] = {
-      x: 0,
-      y: 0,
       w: $state[:solids][:square][:w],
       h: $state[:solids][:square][:h],
-      path: :rt_square,
-      angle: 0,
-      r: 255,
-      g: 255,
-      b: 255,
-      a: 255,
-      angle_anchor_x: 0.5,
-      angle_anchor_y: 0.5,
-      source_x: 0,
-      source_y: 0,
-      source_w: $state[:solids][:square][:w],
-      source_h: $state[:solids][:square][:h]
+      path: :rt_square
     }
-    
-    $state[:sprites][:square][:diagonal] = Math.sqrt(
-      $state[:sprites][:square][:w]**2 +
-      $state[:sprites][:square][:h]**2
-    ).ceil
-    # Needs generalizing.
     
     $state[:RTs][:circle] = args.render_target :rt_circle
     $state[:RTs][:circle].width =
-      $state[:sprites][:square][:diagonal]
+      $state[:solids][:square][:diagonal]
     $state[:RTs][:circle].height =
-      $state[:sprites][:square][:diagonal]
+      $state[:solids][:square][:diagonal]
     
     # square = center $state[:sprites][:square], args
     # Note: `center` dupes!
@@ -185,6 +167,7 @@ def tick args
     square[:y] = $state[:RTs][:circle].height / 2 - square[:h] / 2
     # There's got to be a better way!
     
+    square[:angle] ||= 0
     square[:r] = 255
     square[:g] = 0
     square[:b] = 0
@@ -195,61 +178,26 @@ def tick args
       $state[:RTs][:circle].sprites << square
     end
     
-=begin
-    puts $state[:RTs][:circle].sprites
-    square = center $state[:sprites][:square], args
-    scale! square, lambda {|size| size - 200}
-    (90 * fine).times do |i|
-      square = square.dup
-      square[:angle] += 1 / fine
-      $state[:RTs][:circle].sprites << square
-    end
-=end
-    
     $state[:sprites][:circle] = {
-      x: 0,
-      y: 0,
-      w: $state[:sprites][:square][:diagonal],
-      h: $state[:sprites][:square][:diagonal],
-      path: :rt_circle,
-      angle: 0,
-      r: 255,
-      g: 255,
-      b: 255,
-      a: 255,
-      angle_anchor_x: 0.5,
-      angle_anchor_y: 0.5,
-      source_x: 0,
-      source_y: 0,
-      source_w: $state[:sprites][:square][:diagonal],
-      source_h: $state[:sprites][:square][:diagonal]
+      w: $state[:solids][:square][:diagonal],
+      h: $state[:solids][:square][:diagonal],
+      path: :rt_circle
     }
     
-    $state[:borders][:reclangle] = {
-    x: 0,
-    y: 0,
-    w: 800,
-    h: 600,
-    r: 255,
-    g: 0,
-    b: 0,
-    a: 255
+    $state[:borders][:rectangle] = {
+      w: args.grid.right,
+      h: args.grid.top,
+      r: 255
     }
     
-    # Canvas declaration was here.
-    
-    center! $state[:sprites][:circle], args
-    
-    $state[:labels][:whee] = {
-      x: 20,
-      y: args.grid.top - 10,
-      text: "[R] for WHEE",
+    $state[:sprites][:canvas] = {
+      w: args.grid.right,
+      h: args.grid.top,
+      path: :rt_canvas
     }
     
     $state[:labels][:frametime] = {
-      x: 20,
-      y: args.grid.top - 30,
-      text: '',
+      y: args.grid.top
     }
     
     $state[:subject] = $state[:sprites][:circle]
@@ -257,13 +205,8 @@ def tick args
     center! $state[:subject], args
     $state[:timing][:time] = Time.now
     $state[:timing][:frametimes] = SizedArray.new
-    
   end
   if args.state.tick_count > 0
-    # For sake of debugging an issue related to this condition:
-    # Mode 1: `if args.state.tick_count > 0`
-    # Mode 2: `if args.state.tick_count > 1`
-    
     $state[:timing][:frametimes] <<
       Time.now - $state[:timing][:time]
     $state[:timing][:time] = Time.now
@@ -291,81 +234,11 @@ def tick args
       scale! $state[:subject], lambda {|size| size - 50}
     end
     
-    if args.inputs.keyboard.key_down.r
-      $state[:toggles][:whee] = !$state[:toggles][:whee]
-    end
-    
-    if $state[:toggles][:whee]
-      $state[:angleΔ] += 0.1
-      $state[:subject][:angle] += $state[:angleΔ]
-    end
-    
-    if args.inputs.keyboard.key_down.zero
-      puts $state.to_s + "\n\n"
-    end
-    
-    # $state[:RTs][:canvas].clear
-    # $state[:sprites][:canvas].clear
-    
-    # Some animation debug code.
-    $state[:sprites][:circle][:x] =
-      args.state.tick_count % ($state[:borders][:reclangle][:w] / 2)
-    $state[:sprites][:circle][:y] =
-      args.state.tick_count % ($state[:borders][:reclangle][:h] / 2)
-    tempDebugLabel = {
-      x: args.grid.center.x - 150,
-      y: args.grid.center.y,
-      text: "Circle's coordinates: %.0f, %.0f" %
-        [$state[:sprites][:circle][:x], $state[:sprites][:circle][:y]],
-    }
-    args.outputs.labels << tempDebugLabel
-    
     $state[:RTs][:canvas] = args.render_target :rt_canvas
-    $state[:RTs][:canvas].width = $state[:borders][:reclangle][:w]
-    $state[:RTs][:canvas].height = $state[:borders][:reclangle][:h]
-    
     $state[:RTs][:canvas].sprites << $state[:sprites][:circle]
-    $state[:RTs][:canvas].borders << $state[:borders][:reclangle]
-=begin
-    if args.state.tick_count < 10
-      puts args.state.tick_count
-      puts $state[:RTs][:canvas].sprites[0][:x]
-      puts $state[:RTs][:canvas].sprites[0][:y]
-    end
-=end
-    
-    $state[:sprites][:canvas] = {
-      x: 0,
-      y: 0,
-      w: $state[:borders][:reclangle][:w],
-      h: $state[:borders][:reclangle][:h],
-      path: :rt_canvas,
-      angle: 0,
-      r: 255,
-      g: 255,
-      b: 255,
-      a: 255,
-      angle_anchor_x: 0.5,
-      angle_anchor_y: 0.5,
-      source_x: 0,
-      source_y: 0,
-      source_w: $state[:borders][:reclangle][:w],
-      source_h: $state[:borders][:reclangle][:h]
-    }
-    # This `puts` shows sprites heaping but not getting rasterized…
-    puts $state[:RTs][:canvas].sprites if args.state.tick_count < 10
+    $state[:RTs][:canvas].borders << $state[:borders][:rectangle]
     
     args.outputs.sprites << $state[:sprites][:canvas]
-    args.outputs.labels << $state[:labels][:whee]
     args.outputs.labels << $state[:labels][:frametime]
-=begin
-    $state[:subject][:x] = 0
-    $state[:subject][:x] =
-      args.state.tick_count % ($state[:borders][:reclangle][:w])
-    $state[:subject][:w] = $state[:sprites][:canvas][:w]
-    $state[:subject][:y] = 0
-    $state[:subject][:h] = $state[:sprites][:canvas][:h]
-    args.outputs.primitives << $state[:subject]
-=end
   end
 end

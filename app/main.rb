@@ -116,6 +116,88 @@ def scale! input, function
   true
 end
 
+module Giatros
+  module Initialize
+    def initialize args_hash
+      args_hash.each{|key, value|
+        instance_variable_set("@#{key}", value)
+      }
+    end
+  end
+  
+  module Serialize
+    def serialize
+      instance_variables.map{|key|
+        [key.to_s[1..-1].to_sym, instance_variable_get(key)]
+      }.to_h
+    end
+    
+    def inspect
+      serialize.to_s
+    end
+    
+    def to_s
+      serialize.to_s
+    end
+  end
+  
+  module Rectangle
+    def w= arg
+      @w = arg
+      calc_diagonal
+    end
+    
+    def h= arg
+      @h = arg
+      calc_diagonal
+    end
+    
+    private
+    
+    def calc_diagonal
+      # @diagonal = Math.sqrt(@w**2 + @h**2).ceil
+      @diagonal = GTK::Geometry.distance({x: @x, y: @y}, {x: @x + @w, y: @y + @h}).ceil
+    end
+  end
+  
+  class SolidBorder
+    include Initialize
+    include Serialize
+    include Rectangle
+    
+    attr_accessor :x, :y, :r, :g, :b, :a
+    attr_reader :w, :h, :diagonal, :fill, :primitive_marker
+    
+    def initialize args_hash
+      super
+      @x ||= 0
+      @y ||= 0
+      @w ||= 50
+      @h ||= 50
+      @r ||= 255
+      @g ||= 255
+      @b ||= 255
+      @a ||= 255
+      @fill ||= false
+      calc_diagonal
+      calc_primitive_marker
+    end
+    
+    def fill= arg
+      @fill = arg
+      calc_primitive_marker
+    end
+    
+    private
+    
+    def calc_primitive_marker
+      @primitive_marker = @fill ? :solid : :border
+    end
+  end
+end
+
+include Giatros
+
 def tick args
   if args.state.tick_count == 1
     $state = {
@@ -128,37 +210,30 @@ def tick args
       timing: {},
       subject: {}
     }
+    args.state.mundane = $state
     
-    $state[:solids][:square] = {
+    $state[:solids][:square] = SolidBorder.new({
       w: 400,
       h: 400,
-      r: 255,
-      g: 255,
-      b: 255
-    }.instance_eval {
-      self[:diagonal] = Math.sqrt(
-        self[:w]**2 +
-        self[:h]**2
-      ).ceil # Needs generalizing.
-      self
-    }
+    })
+    puts $state[:solids][:square].serialize # Debug.
     
     $state[:RTs][:square] = args.render_target :rt_square
-    $state[:RTs][:square].width = $state[:solids][:square][:w]
-    $state[:RTs][:square].height = $state[:solids][:square][:h]
+    $state[:RTs][:square].width = $state[:solids][:square].w
+    $state[:RTs][:square].height = $state[:solids][:square].h
     $state[:RTs][:square].solids << $state[:solids][:square]
     
     $state[:sprites][:square] = {
-      w: $state[:solids][:square][:w],
-      h: $state[:solids][:square][:h],
+      w: $state[:solids][:square].w,
+      h: $state[:solids][:square].h,
       path: :rt_square
     }
     
     $state[:RTs][:circle] = args.render_target :rt_circle
     $state[:RTs][:circle].width =
-      $state[:solids][:square][:diagonal]
+      $state[:solids][:square].diagonal
     $state[:RTs][:circle].height =
-      $state[:solids][:square][:diagonal]
+      $state[:solids][:square].diagonal
     
     # square = center $state[:sprites][:square], args
     # Note: `center` dupes!
@@ -179,8 +254,8 @@ def tick args
     end
     
     $state[:sprites][:circle] = {
-      w: $state[:solids][:square][:diagonal],
-      h: $state[:solids][:square][:diagonal],
+      w: $state[:solids][:square].diagonal,
+      h: $state[:solids][:square].diagonal,
       path: :rt_circle
     }
     

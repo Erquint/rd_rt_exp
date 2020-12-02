@@ -1,5 +1,8 @@
 # --window_width 800 --window_height 600
 
+# DR GTK 1.14
+# c0a19ce1fa25044fcf0289bcd6e6f1d64988075d
+
 class GTK::Console
   def render_help args, top
   end
